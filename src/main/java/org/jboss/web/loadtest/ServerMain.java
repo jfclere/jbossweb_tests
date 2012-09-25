@@ -23,6 +23,7 @@ package org.jboss.web.loadtest;
 import org.apache.catalina.connector.Connector;
 
 public class ServerMain {
+	
 	public static void main(String [ ] args) {
 		Connector connector = null;
 		try {
