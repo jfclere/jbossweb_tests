@@ -18,12 +18,18 @@
 
 package org.jboss.web.loadtest;
 
+import org.apache.catalina.Context;
 import org.apache.catalina.Engine;
+import org.apache.catalina.Lifecycle;
 import org.apache.catalina.LifecycleException;
+import org.apache.catalina.Wrapper;
 import org.apache.catalina.connector.Connector;
+import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.core.StandardEngine;
+import org.apache.catalina.core.StandardHost;
 import org.apache.catalina.core.StandardServer;
 import org.apache.catalina.core.StandardService;
+import org.apache.catalina.startup.ContextConfig;
 
 
 public class ServletContainer {
@@ -32,8 +38,10 @@ public class ServletContainer {
 	private Engine engine;
     private StandardServer server;
     private StandardService service;
+    private StandardHost host;
     
     public synchronized void start() throws Exception {
+    	System.setProperty("catalina.home", ".");
         final StandardServer server = new StandardServer();
 
         final StandardService service = new StandardService();
@@ -45,6 +53,12 @@ public class ServletContainer {
         engine.setName(JBOSS_WEB);
         engine.setService(service);
 		engine.setDefaultHost(DEFAULT_HOST);
+		
+        StandardHost host = new StandardHost();
+        host.setAppBase(".");
+        host.setName(DEFAULT_HOST);
+        engine.addChild(host);
+
 
         service.setContainer(engine);
         
@@ -54,6 +68,7 @@ public class ServletContainer {
         this.server = server;
         this.service = service;
         this.engine = engine;
+        this.host = host;
 
     }
     
@@ -62,6 +77,7 @@ public class ServletContainer {
         engine = null;
         service = null;
         server = null;
+        host = null;
     }
     
     public synchronized void addConnector(Connector connector) {
@@ -73,5 +89,23 @@ public class ServletContainer {
         final StandardService service = this.service;
         service.removeConnector(connector);
     }
-
+    
+    public void addServlet(Class servlet) throws Exception {
+    	Context rootContext = new StandardContext();
+    	rootContext.setPath("");
+    	rootContext.setDocBase(".");
+    	ContextConfig config = new ContextConfig();
+        ((Lifecycle) rootContext).addLifecycleListener(config);
+        rootContext.setInstanceManager(new LocalInstanceManager());
+        Wrapper testwrapper = rootContext.createWrapper();
+        String servletname = servlet.getName();
+        System.out.println("Servlet: " + servletname);
+        testwrapper.setName(servletname);
+        testwrapper.setServletClass(servletname);
+        rootContext.addChild(testwrapper);
+        rootContext.addServletMapping("/" + servletname, servletname);
+        host.addChild(rootContext);
+        ((StandardContext) rootContext).create();
+        ((StandardContext) rootContext).start();
+    }
 }

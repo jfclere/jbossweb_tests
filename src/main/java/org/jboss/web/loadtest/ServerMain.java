@@ -20,6 +20,7 @@
 
 package org.jboss.web.loadtest;
 
+import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Connector;
 
 public class ServerMain {
@@ -37,11 +38,33 @@ public class ServerMain {
 		} catch (Exception e) {
 			System.out.println("Can't start: " + e);
 		}
+		connector.setPort(8080);
 		cont.addConnector(connector);
+		try {
+			cont.addServlet(SimpleServlet.class);
+		} catch (Exception e) {
+			System.out.println("Can't start servlet: " + e);
+		}
+		try {
+			connector.start();
+		} catch (LifecycleException e) {
+			System.out.println("Can't start connector: " + e);
+		}
 		try {
 			Thread.sleep(40000);
 		} catch (InterruptedException e) {
 			// Ignored...
+		}
+	    try {
+			connector.stop();
+		} catch (LifecycleException e) {
+			System.out.println("Can't stop connector: " + e);
+		}
+		cont.removeConnector(connector);
+		try {
+			cont.stop();
+		} catch (LifecycleException e) {
+			System.out.println("Can't stop: " + e);
 		}
 	}
 
